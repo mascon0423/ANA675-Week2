@@ -60,3 +60,15 @@ Selection minimizes sample-weighted validation RMSE, not peak error. Test values
 `results/bayesian_tree/metrics.csv` compares tuned and baseline tree RMSE plus unchanged boosting RMSE on the same samples within each resolution. `trials.csv` records every setting and validation score. Predictions remain local. Directly comparing 30-minute versus hourly numbers in this file can reflect differing target samples; the baseline matched comparison remains in its separate file.
 
 Checks: optimizer bounds, acquisition edge cases, unique trials, minimum-objective selection, and execution of the Bayesian phase are covered by tune_tree.py --self-test.
+
+## Bayesian gradient boosting and combined results
+
+```sh
+.venv/bin/python tune_tree.py --self-test
+OMP_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2 .venv/bin/python tune_tree.py --model boosting --trials 24
+.venv/bin/python compare_all.py
+```
+
+The shared search runner now supports boosting as well as trees; the default remains tree. Boosting searches learning rate 0.01–0.2, 50–350 iterations, 5–31 leaves, and minimum leaf size 5–80. Learning rate and leaf size use log scales. Seed, search budget, validation objective and event splits match the tree experiment. Internal early stopping remains disabled, and test results do not enter the optimization objective.
+
+`results/ALL_RESULTS.md` contains overall RMSE, peak RMSE and peak MAE tables for every model, at both sampling intervals. `results/all_models_matched.csv` also includes MAE and sample counts. All ten combinations use the intersection of target timestamps for each horizon, so sampling comparisons are aligned. Detailed boosting settings, every trial and full-sample metrics are in `results/bayesian_boosting/`. Per-target predictions remain local and untracked.

@@ -1,0 +1,28 @@
+{
+  "trials": 24,
+  "seed": 42,
+  "initial_points": 6,
+  "surrogate": "Gaussian process, fixed Matern 2.5 kernel, length scale 0.3, normalized inputs/targets",
+  "acquisition": "expected improvement; 512 random untried candidates per iteration",
+  "objective": "validation sample-weighted RMSE; no test-guided selection; training-only refit",
+  "model": "boosting",
+  "bounds": {
+    "learning_rate": [
+      0.01,
+      0.2
+    ],
+    "max_iter": [
+      50,
+      350
+    ],
+    "max_leaf_nodes": [
+      5,
+      31
+    ],
+    "min_samples_leaf": [
+      5,
+      80
+    ]
+  },
+  "limitation": "Previously inspected pilot test periods; not an untouched confirmatory evaluation."
+}
