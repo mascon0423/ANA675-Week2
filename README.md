@@ -4,10 +4,10 @@ Decision tree and histogram gradient boosting regression, with a persistence bas
 
 ## Run in PyCharm or a terminal
 
-Open this folder as a PyCharm project. Create a Python virtual environment, install requirements, then select it as the project interpreter.
+Open this folder as a PyCharm project. Use Python 3.12 or newer (tested with 3.13). Create a Python virtual environment, install requirements, then select it as the project interpreter.
 
 ```sh
-python3 -m venv .venv
+python3.13 -m venv .venv
 .venv/bin/python -m pip install -r requirements.txt
 .venv/bin/python main.py --self-test
 .venv/bin/python main.py --step-minutes 60
