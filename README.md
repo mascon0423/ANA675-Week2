@@ -91,3 +91,18 @@ A new 24-trial Bayesian boosting search minimizes mean validation RMSE across sp
 Published event assignments are preserved rather than replaced with our earlier merged chronological groups. Because rounded windows can overlap, overlap_audit.csv counts shared target timestamps across partitions. It does not guarantee absence of shared input observations. Do not describe these estimates as independently leakage-free. Reuse of events across published splits and earlier experiments also prevents treating this as a new untouched test.
 
 Results and detailed coverage are in `results/paper_protocol/`. `protocol.json` records sample counts versus the paper's 9,484 one-hour and 9,108 nine-hour samples, source hashes, smoothing availability and limitations. The script checks the kernel, missing-neighbor handling, centered behavior, peak timing, all 20 split counts, target equality and source event IDs. No new dependencies are required.
+
+## MLP architecture search and NEAT pilot
+
+```sh
+OPENBLAS_NUM_THREADS=2 .venv/bin/python neural_experiments.py --self-test
+OMP_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2 .venv/bin/python neural_experiments.py --trials 24 --epochs 200 --generations 60
+```
+
+This exploratory extension uses the same centered inputs and eligible samples as `paper_protocol.py`, at 3/6/9 hours across all 20 published splits. Bayesian search considers 1–5 hidden layers with independently selected widths of 8–64 neurons each, Adam learning rate 0.0001–0.01, and L2 regularization 0.000001–0.01. ReLU activation is fixed. Inactive width dimensions are canonicalized. The initial candidate has one 16-neuron layer. There are 24 candidates, selected on mean validation RMSE across splits 1–3 and the three horizons. The shared Gaussian-process search now infers its dimension from the encoder, retaining earlier tree behavior.
+
+Inputs and target are standardized using only each split's training data. MLP weights are trained by Adam for up to 200 epochs, retaining the checkpoint with lowest published-validation RMSE and stopping after 20 epochs without improvement. No random internal validation holdout is used. This scaling differs from the paper's physical scaling; the baseline is paper-inspired, not a reproduced author model. Each fit uses one seed, not the authors' ten-initialization ensemble.
+
+NEAT-Python 1.1.0 is the one new dependency, needed for genuine topology-and-weight evolution. It starts with direct input-output connections, evolves ReLU hidden nodes and connections, and retains a linear output. Population 60, 60 generations, seed 42: training MSE determines evolutionary fitness; validation RMSE chooses among generation training champions. No Adam or CMA-ES is used. Batch prediction is checked against NEAT's scalar evaluator. These budgets are bounded pilots, not equal computational budgets or exhaustive optimization. Results must not be presented as algorithm superiority or independent confirmation: published splits and previously viewed test events are reused.
+
+Results are written to `results/neural/` as trials, selected settings, per-split metrics, NEAT generation histories and mean metrics. The MLP search runs first, followed by baseline MLP, tuned MLP and NEAT evaluation. Source documentation: https://scikit-learn.org/stable/modules/generated/sklearn.neural_network.MLPRegressor.html and https://neat-python.readthedocs.io/en/latest/.

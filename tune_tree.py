@@ -54,7 +54,7 @@ def search(objective, trials, seed, initial=None, decoder=decode, encoder=encode
         if trial:
             candidates=[]; candidate_keys=set()
             while len(candidates)<512:
-                p=decoder(rng.random(4)); key=tuple(p.values())
+                p=decoder(rng.random(len(encoder(params[0])))); key=tuple(p.values())
                 if key not in seen and key not in candidate_keys:
                     candidates.append(p); candidate_keys.add(key)
             if trial < 6:
