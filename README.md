@@ -24,7 +24,7 @@ Local data is already in `data/combined_river_data.csv`. This large provenance-b
 - Forecast Colorno 1, 3, 6 and 9 hours ahead, with a separate model per horizon. The paper tested every integer horizon 1–9; this pilot uses four.
 - Restrict all inputs and targets to event windows. The supplement's rounded durations define approximate, exclusive endpoints. Event start times are provisionally interpreted as UTC, not verified as such.
 - Merge overlapping/touching windows to avoid cross-split leakage. The 47 listed events produce 35 independent groups: first 24 chronological groups train, next 5 validate, final 6 test. This differs from the paper's randomized splits. Never split individual rows randomly.
-- Fixed initial settings: tree depth 8, minimum leaf size 10; gradient boosting 200 iterations, learning rate 0.05, 15 leaves, minimum leaf size 20. Seed 42. Boosting early stopping is disabled to avoid an internal random row split. No hyperparameter search yet.
+- Fixed initial settings: tree depth 8, minimum leaf size 10; gradient boosting 200 iterations, learning rate 0.05, 15 leaves, minimum leaf size 20. Seed 42. Boosting early stopping is disabled to avoid an internal random row split. These are the fixed baseline settings; Bayesian tree tuning is described below.
 - Measure RMSE, MAE and average absolute difference of predicted versus observed event maxima, over eligible targets only. This peak metric is not necessarily the paper's metric; incomplete target coverage can omit actual peaks.
 - `compare.py` evaluates both runs at identical test target times. Other metrics files evaluate each run's full available sample set and should not alone determine which sampling interval is better.
 
@@ -40,8 +40,23 @@ Models: https://scikit-learn.org/stable/modules/tree.html and https://scikit-lea
 
 Results are in `results/30min`, `results/60min`, and `results/matched_comparison.csv`. Each run saves coverage, split membership, metrics, local predictions, input hashes and library versions. Rerunning replaces the corresponding generated results.
 
-Next: Bayesian optimization of tree depth, leaf size and split settings, using training and validation groups only. Do not choose settings on test scores. Since these pilot test scores have been inspected, a final confirmatory comparison should use a newly reserved untouched period or nested group validation. More frequent readings may add useful detail or noise; improvement is an empirical question.
+Bayesian optimization of tree depth, leaf size, split size and feature fraction uses training and validation groups only. Do not choose settings on test scores. Since these pilot test scores have been inspected, a final confirmatory comparison should use a newly reserved untouched period or nested group validation. More frequent readings may add useful detail or noise; improvement is an empirical question.
 
 ## Checks
 
-`main.py --self-test` checks lag order, target timing, boundaries, missing-value exclusion, both sample resolutions and the peak metric. Runtime checks reject duplicates/nonfinite data and ensure disjoint event groups. `compare.py` checks observed targets agree across resolutions. No pre-existing lint or CI setup in this new project. Exact-replication validation and Bayesian tuning have not run.
+`main.py --self-test` checks lag order, target timing, boundaries, missing-value exclusion, both sample resolutions and the peak metric. Runtime checks reject duplicates/nonfinite data and ensure disjoint event groups. `compare.py` checks observed targets agree across resolutions. No pre-existing lint or CI setup in this new project. Exact-replication validation has not run because the required source resolution and preprocessing details remain unresolved.
+
+## Bayesian decision-tree experiment
+
+```sh
+.venv/bin/python tune_tree.py --self-test
+OMP_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2 .venv/bin/python tune_tree.py --trials 24
+```
+
+Eight searches: both input resolutions and four forecast horizons. Each search evaluates 24 settings: the original baseline, five seeded random settings, then 18 Gaussian-process expected-improvement selections. The existing scikit-learn GaussianProcessRegressor and SciPy normal CDF avoid a new optimization package. A fixed Matern kernel and 512 random candidate settings per step make this a small, reproducible pilot, not an exhaustive optimum. Leaf/split sizes are sampled on log scales; depth and feature fraction on linear scales. Search bounds and seed are saved in search_config.json.
+
+Selection minimizes sample-weighted validation RMSE, not peak error. Test values are excluded from the optimization objective. Selected trees are refitted on training only (not train plus validation), retaining a fair training-size comparison with the baseline. Baseline validation scores are reproduced by assertion. Input hashes, event manifests and test sample counts must match the baseline. This does not undo prior exposure to test results: treat the comparison as exploratory.
+
+`results/bayesian_tree/metrics.csv` compares tuned and baseline tree RMSE plus unchanged boosting RMSE on the same samples within each resolution. `trials.csv` records every setting and validation score. Predictions remain local. Directly comparing 30-minute versus hourly numbers in this file can reflect differing target samples; the baseline matched comparison remains in its separate file.
+
+Checks: optimizer bounds, acquisition edge cases, unique trials, minimum-objective selection, and execution of the Bayesian phase are covered by tune_tree.py --self-test.
