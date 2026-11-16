@@ -4,3 +4,4 @@ __pycache__/
 .DS_Store
 data/combined_river_data.csv
 results/**/predictions.csv
+results/paper_protocol/hourly_measurements.csv
