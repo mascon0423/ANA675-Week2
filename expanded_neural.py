@@ -130,6 +130,33 @@ def run(args):
     print('Expanded experiment complete.',flush=True)
 
 
+def report():
+    with (OUT/'mean_metrics.csv').open() as f: rows=list(csv.DictReader(f))
+    with (n.OUT/'mean_metrics.csv').open() as f: pilot=list(csv.DictReader(f))
+    settings=json.loads((OUT/'selected_mlp.json').read_text())
+    lines=['# Expanded neural results','',
+        'Averages across the same 20 published splits. All errors below are centimeters; lower is better. These are repeated exploratory evaluations on reconstructed data, not independent confirmation.','']
+    refs={'rmse_m':{3:.072,6:.131,9:.250},'peak_rmse_m':{3:.135,6:.150,9:.424}}
+    for metric,title in [('rmse_m','Overall RMSE'),('peak_rmse_m','Peak-height RMSE')]:
+        lines+=['## '+title,'',
+            '| Ahead | Prior tuned MLP, one seed | Prior architecture, 10 seeds | Expanded MLP, 10 seeds | Expanded NEAT, 3 seeds | Paper reference |',
+            '|---|---:|---:|---:|---:|---:|']
+        for h in n.HORIZONS:
+            old=next(r for r in pilot if int(r['horizon_h'])==h and r['model']=='mlp_bayesian')
+            current={r['model']:r for r in rows if int(r['horizon_h'])==h}
+            vals=[float(old['mean_'+metric])]+[float(current[k]['mean_'+metric]) for k in
+                ('prior_mlp_ensemble','balanced_mlp_ensemble','neat_expanded_ensemble')]+[refs[metric][h]]
+            lines.append('| '+str(h)+' h | '+' | '.join(f'{100*v:.2f}' for v in vals)+' |')
+        lines.append('')
+    lines += [f'Selected expanded MLP settings: `{json.dumps(settings)}`.','',
+        'The search uses 64 Bayesian candidates, up to 400 epochs, independently sized layers and three-seed ensemble validation across splits 1–3 and horizons 3/6/9. The balanced objective is 50% overall RMSE plus 50% eligible-event peak-height RMSE, both in meters. Final MLP predictions average ten seeds. The prior-architecture ensemble retains ordinary validation-RMSE checkpoint selection; the new architecture uses the balanced objective. Both have a larger epoch budget than the pilot, so changes cannot be attributed solely to ensembling.','',
+        'Expanded NEAT uses population 150, 200 generations and three seeds per split/horizon. Training MSE drives evolution; the balanced validation score chooses each seed’s generation champion. Three predictions are averaged. This is still a bounded search, not a best-possible performance claim; computational budgets differ across methods.','',
+        'Paper references are its best reported overall RMSE and its LSTM peak RMSE (Tables 3–4). All reconstruction differences remain: incomplete windows omitted, coarser original sampling, adapted centered smoothing, assumed timestamps, and training-only standardization rather than physical scaling. Centered inputs use later archived readings. Peak-height error can hide timing errors; observed-peak-time error is also saved in the metrics. Reusing published test events across experiments limits confirmatory claims.','',
+        'Checks: layer encoding, Bayesian selection, scalar/batch NEAT parity, training-only scaling, custom checkpoint scoring, objective arithmetic and complete split/model coverage. Not run: exact replication, fresh-event confirmation or equal-compute algorithm benchmarking.','',
+        'Source: https://doi.org/10.3390/w13121612.']
+    (OUT/'SUMMARY.md').write_text('\n'.join(lines)+'\n')
+
+
 if __name__=='__main__':
     p=argparse.ArgumentParser();p.add_argument('--self-test',action='store_true')
     p.add_argument('--trials',type=int,default=64);p.add_argument('--epochs',type=int,default=400)
@@ -139,3 +166,4 @@ if __name__=='__main__':
     else:
         if args.trials<7 or min(args.epochs,args.population,args.generations)<1: p.error('Invalid budget')
         run(args)
+        report()

@@ -1,0 +1,44 @@
+{
+  "trials": 64,
+  "epochs": 400,
+  "population": 150,
+  "generations": 200,
+  "search_seeds": [
+    42,
+    43,
+    44
+  ],
+  "mlp_ensemble_seeds": [
+    42,
+    43,
+    44,
+    45,
+    46,
+    47,
+    48,
+    49,
+    50,
+    51
+  ],
+  "neat_ensemble_seeds": [
+    42,
+    43,
+    44
+  ],
+  "tuning_splits": [
+    1,
+    2,
+    3
+  ],
+  "horizons": [
+    3,
+    6,
+    9
+  ],
+  "objective": "0.5 overall RMSE + 0.5 eligible-event peak RMSE",
+  "data_hashes": {
+    "combined_river_data.csv": "eb8c1f7e1751d6d25b75df5db51a980f2f08251559b5b4deda1ff540fe3fe88a",
+    "flood-events.csv": "6f57b2817ea675aff08a0cdb1393d5bb644190bfa8f585c4b1114123d8f4b0e6",
+    "paper_splits.csv": "9975b66bb6a4373a456140fa1acc34d4e26f69e31918d0bd831b5d2d3b961d88"
+  }
+}
