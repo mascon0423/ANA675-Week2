@@ -1,0 +1,16 @@
+{
+  "sampling_minutes": 60,
+  "sklearn_version": "1.9.1",
+  "numpy_version": "2.5.4",
+  "input_sha256": {
+    "combined_river_data.csv": "eb8c1f7e1751d6d25b75df5db51a980f2f08251559b5b4deda1ff540fe3fe88a",
+    "flood-events.csv": "6f57b2817ea675aff08a0cdb1393d5bb644190bfa8f585c4b1114123d8f4b0e6"
+  },
+  "event_groups": 35,
+  "split_groups": {
+    "test": 6,
+    "train": 24,
+    "validation": 5
+  },
+  "warning": "Approximate event UTC windows; no original smoothing or datum conversion. Not directly comparable to paper. Test results now exposed; future tuning uses validation only."
+}
