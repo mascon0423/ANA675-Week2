@@ -32,7 +32,7 @@ def scaled(train,val):
     return xs,ys,xs.transform(train[1]),ys.transform(train[2][:,None]).ravel(),xs.transform(val[1])
 
 
-def fit_mlp(p,train,val,epochs,seed):
+def fit_mlp(p,train,val,epochs,seed,scorer=None):
     xs,ys,x,y,xv=scaled(train,val)
     model=MLPRegressor(hidden_layer_sizes=p['layers'],activation='relu',solver='adam',
         learning_rate_init=p['learning_rate_init'],alpha=p['alpha'],batch_size=min(256,len(x)),
@@ -41,7 +41,7 @@ def fit_mlp(p,train,val,epochs,seed):
     for epoch in range(1,epochs+1):
         model.partial_fit(x,y)
         pred=ys.inverse_transform(model.predict(xv)[:,None]).ravel()
-        current=float(np.sqrt(np.mean((pred-val[2])**2)))
+        current=float(scorer(pred) if scorer else np.sqrt(np.mean((pred-val[2])**2)))
         if not np.isfinite(current): raise ValueError('Nonfinite MLP validation error')
         if current < score-1e-6:
             score=current;best=copy.deepcopy(model);stale=0;best_epoch=epoch
@@ -69,10 +69,10 @@ def batch_predict(network,x):
     return values[network.output_nodes[0]]
 
 
-def fit_neat(train,val,generations,seed):
+def fit_neat(train,val,generations,seed,population=60,scorer=None):
     random.seed(seed);np.random.seed(seed)
     xs,ys,x,y,xv=scaled(train,val)
-    config=neat_config();pop=neat.Population(config)
+    config=neat_config();config.pop_size=population;pop=neat.Population(config)
     # Output must be linear for standardized regression. Structural mutations
     # create ReLU hidden nodes; output activation mutation is disabled in config.
     for genome in pop.population.values(): genome.nodes[0].activation='identity'
@@ -87,7 +87,7 @@ def fit_neat(train,val,generations,seed):
             if champion is None or genome.fitness>champion.fitness: champion=genome
         net=neat.nn.FeedForwardNetwork.create(champion,config)
         pred=ys.inverse_transform(batch_predict(net,xv)[:,None]).ravel()
-        score=float(np.sqrt(np.mean((pred-val[2])**2)))
+        score=float(scorer(pred) if scorer else np.sqrt(np.mean((pred-val[2])**2)))
         if score<best_score: best_score=score;best=copy.deepcopy(champion)
         history.append(dict(generation=len(history)+1,training_mse_scaled=-champion.fitness,
                             validation_rmse_m=score,nodes=len(champion.nodes),connections=len(champion.connections)))

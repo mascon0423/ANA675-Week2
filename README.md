@@ -106,3 +106,18 @@ Inputs and target are standardized using only each split's training data. MLP we
 NEAT-Python 1.1.0 is the one new dependency, needed for genuine topology-and-weight evolution. It starts with direct input-output connections, evolves ReLU hidden nodes and connections, and retains a linear output. Population 60, 60 generations, seed 42: training MSE determines evolutionary fitness; validation RMSE chooses among generation training champions. No Adam or CMA-ES is used. Batch prediction is checked against NEAT's scalar evaluator. These budgets are bounded pilots, not equal computational budgets or exhaustive optimization. Results must not be presented as algorithm superiority or independent confirmation: published splits and previously viewed test events are reused.
 
 Results are written to `results/neural/` as trials, selected settings, per-split metrics, NEAT generation histories and mean metrics. The MLP search runs first, followed by baseline MLP, tuned MLP and NEAT evaluation. Source documentation: https://scikit-learn.org/stable/modules/generated/sklearn.neural_network.MLPRegressor.html and https://neat-python.readthedocs.io/en/latest/.
+
+## Expanded neural experiment
+
+```sh
+OMP_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2 .venv/bin/python expanded_neural.py --self-test
+OMP_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2 .venv/bin/python expanded_neural.py --trials 64 --epochs 400 --population 150 --generations 200
+```
+
+The expanded run preserves the pilot and writes `results/neural_expanded/`. It increases the experiment budget, not the size or membership of the paper's test sets. The same reconstructed samples, 20 splits and 3/6/9-hour horizons are used. The 64-candidate Bayesian search retains independent widths and begins with the prior selected MLP. Each candidate is scored using three independently initialized models per tuning split/horizon; their validation predictions are averaged. The objective is a prespecified equal-weight average of overall RMSE and eligible-event peak-height RMSE, both in meters. Individual checkpoints use that same objective. This does not optimize peak timing directly.
+
+Final evaluation averages ten MLP seeds (42–51). Two versions are included: the prior selected architecture with ordinary validation-RMSE early stopping, and the expanded-search architecture with balanced early stopping. Both have a 400-epoch ceiling and patience 20. Changes therefore include training budget and checkpoint selection as well as ensemble size; improvements cannot be attributed to a single cause.
+
+NEAT expands to population 150 and 200 generations per run, averaging predictions from three evolutionary seeds (42–44). Evolutionary fitness remains training MSE; the balanced validation objective chooses the generation champion for each seed. Test outcomes never choose seeds, weights or configurations. MLP and NEAT compute budgets remain unequal.
+
+Completed candidate objectives and completed split/horizon/model evaluations are checkpointed. Rerunning the identical command reuses them; interrupted individual fits restart. The manifest rejects changed settings or input hashes in the same output directory. All previous reconstruction and repeated-test-use limitations still apply. Exact replication, equal-compute benchmarking and evaluation on fresh unseen flood events are not part of this run.
